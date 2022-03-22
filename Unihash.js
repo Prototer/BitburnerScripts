@@ -13,11 +13,11 @@ export async function main(ns) {
 	if (file9) {
 		if (file3) { tasklist.push("Sell for Corporation Funds"); tasklist.push("Exchange for Corporation Research") }
 		if (file6) { tasklist.push("Exchange for Bladeburner Rank"); tasklist.push("Exchange for Bladeburner SP") }
-		let task = await ns.prompt("which upgrade do you want to automate?", { type: "select", choices: tasklist })
-		if (task == "Reduce Minimum Security" || task == "Increase Maximum Money") { var server = await ns.prompt("Which server?", { type: "text" }) }
+		let task = ns.args[0] || await ns.prompt("which upgrade do you want to automate?", { type: "select", choices: tasklist })
+		if (task == "Reduce Minimum Security" || task == "Increase Maximum Money") { var server = ns.args[1] ||  ns.prompt("Which server?", { type: "text" }) }
 		if (server != undefined) { await serverfunction(task, server) } else { await regulartask(task) }
 	}
-	ns.tprint("you need source-file 9, dummy!")
+	else { ns.tprint("you need source-file 9, dummy!") }
 
 	async function regulartask(task) {
 		while (true) {
