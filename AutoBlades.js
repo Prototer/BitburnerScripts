@@ -6,18 +6,19 @@ const minsucchance = 0.5 //minimal succes chance to let things go.
 export async function main(ns) {
 	//main loop
 	let loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima", ns.args[0] || 0]
-	let lastjob
+	let lastjob = ["contract", "Tracking"]
 	let restoverride = false
 	while (true) {
+		rest()
+		while (getstamina() < 1) {
+			spendskill()
+			await ns.sleep(10000)
+		}
 		if (ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1000000000) { ns.print("check"); changeloc() }
 		work()
 		while (getstamina() > 0.5) {
 			spendskill()
-			await ns.sleep(10000)
-		}
-		rest()
-		while (getstamina() < 1) {
-			spendskill()
+			if(getsucceschance(lastjob[0],lastjob[1]) < (minsucchance - maxchandev)) {work()}
 			await ns.sleep(10000)
 		}
 	}
@@ -33,8 +34,10 @@ export async function main(ns) {
 	}
 	//get best task and switches it on.
 	function changeloc() {
-		ns.bladeburner.switchCity(loc[loc[6] % 6])
-		loc[6]++
+		for(let i = 0; i < loc.length - 1; i++) {
+			if(ns.bladeburner.getCityEstimatedPopulation(loc[i]) > 1000000000) {loc[6] = i}
+		}
+		ns.bladeburner.switchCity(loc[loc[6]])
 		restoverride = true
 	}
 	function work() {
