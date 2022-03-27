@@ -5,7 +5,7 @@ const minsucchance = 0.5 //minimal succes chance to let things go.
 //main script
 export async function main(ns) {
 	//main loop
-	let loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima", 0]
+	let loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima", ns.args[0] || 0]
 	let lastjob
 	let restoverride = false
 	while (true) {
@@ -58,17 +58,17 @@ export async function main(ns) {
 		}
 
 		for (let i = 0; i < operations.length; i++) {
-			if ((bestop == undefined || (operations[i][1] > bestop[1] && 0 < ns.bladeburner.getActionCountRemaining("operation", operations[i][0])) && operations[i][2] > minsucchance)) {
+			if ((bestop == undefined || (operations[i][1] > bestop[1] && 0 < ns.bladeburner.getActionCountRemaining("operation", operations[i][0]))) && operations[i][2] > minsucchance) {
 				bestop = operations[i]
 			}
 		}
 		bestco.unshift("contract")
-		bestop.unshift("operation")
 		if (bestop != undefined) {
+			bestop.unshift("operation")
 			if (bestop[2] < bestco[2]) { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
 			else { ns.bladeburner.startAction(bestop[0], bestop[1]); lastjob = bestop }
 		}
-		else { ns.bladeburner.startAction(bestop[0], bestop[1]); lastjob = bestop }
+		else { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
 	}
 	//checks for the lowest value and buys it, excludes 3 skills.
 	function spendskill() {
