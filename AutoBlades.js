@@ -18,11 +18,12 @@ export async function main(ns) {
 		await work()
 		while (getstamina() > 0.5) {
 			spendskill()
-			let chold = getsucceschance(lastjob[0], lastjob[1])
-			if (chold[0] < (minsucchance - maxchandev) && lastjob[1] != "Tracking") { await work() }
-			if (chold[0] == 1 && lastjob[1] != "Assassination") { await work() }
+			let chold = getsucceschance(lastjob[0][0], lastjob[0][1])
+			if (chold[0] < (minsucchance - maxchandev) && lastjob[0][1] != "Tracking") { await work() }
+			if (chold[0] == 1 && lastjob[0][1] != "Assassination" && lastjob[0][1] != lastjob[1][1]) { lastjob[1] = lastjob[0]; await work() }
 			await ns.sleep(1000)
 		}
+		lastjob.splice(1,1)
 	}
 	//all the other functions (only works that way)
 	function getstamina() {
@@ -85,10 +86,10 @@ export async function main(ns) {
 				bestco.unshift("contract")
 				if (bestop != undefined) {
 					bestop.unshift("operation")
-					if (bestop[2] < bestco[2]) { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
-					else { ns.bladeburner.startAction(bestop[0], bestop[1]); lastjob = bestop }
+					if (bestop[2] < bestco[2]) { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob[0] = bestco }
+					else { ns.bladeburner.startAction(bestop[0], bestop[1]); lastjob[0] = bestop }
 				}
-				else { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
+				else { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob[0] = bestco }
 			}
 			else {
 				ns.bladeburner.startAction("BlackOps", blackop)
@@ -121,7 +122,7 @@ export async function main(ns) {
 	}
 	// depending on succes devation threshhold, decides if it goes training or optimizing chances
 	function rest() {
-		let hold = getsucceschance(lastjob[0], lastjob[1])
+		let hold = getsucceschance(lastjob[0][0], lastjob[0][1])
 		if (hold[1] > maxchandev || restoverride) { ns.bladeburner.startAction("General", "Field Analysis"); restoverride = false }
 		else { ns.bladeburner.startAction("General", "Hyperbolic Regeneration Chamber") }
 	}
