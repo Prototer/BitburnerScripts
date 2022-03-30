@@ -5,21 +5,23 @@ const minsucchance = 0.5 //minimal succes chance to let things go.
 //main script
 export async function main(ns) {
 	//main loop
-	let loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima", ns.args[0] || 0]
+	let loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima", 0]
 	let lastjob = ["contract", "Tracking"]
 	let restoverride = false
 	while (true) {
 		rest()
 		while (getstamina() < 1) {
 			spendskill()
-			await ns.sleep(10000)
+			await ns.sleep(1000)
 		}
 		if (ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1000000000) { ns.print("check"); changeloc() }
-		work()
+		await work()
 		while (getstamina() > 0.5) {
 			spendskill()
-			if(getsucceschance(lastjob[0],lastjob[1]) < (minsucchance - maxchandev)) {work()}
-			await ns.sleep(10000)
+			let chold = getsucceschance(lastjob[0], lastjob[1])
+			if (chold[0] < (minsucchance - maxchandev) && lastjob[1] != "Tracking") { await work() }
+			if (chold[0] == 1 && lastjob[1] != "Assassination") { await work() }
+			await ns.sleep(1000)
 		}
 	}
 	//all the other functions (only works that way)
@@ -32,46 +34,75 @@ export async function main(ns) {
 		const res = ns.bladeburner.getActionEstimatedSuccessChance(type, task)
 		return [res[0], res[1] - res[0]]
 	}
-	//get best task and switches it on.
 	function changeloc() {
-		for(let i = 0; i < loc.length - 1; i++) {
-			if(ns.bladeburner.getCityEstimatedPopulation(loc[i]) > 1000000000) {loc[6] = i}
+		for (let i = 0; i < loc.length - 1; i++) {
+			if (ns.bladeburner.getCity() == loc[i]) { loc[6] = i }
 		}
-		ns.bladeburner.switchCity(loc[loc[6]])
+		loc[6]++
+		ns.bladeburner.switchCity(loc[loc[6] % 6])
 		restoverride = true
 	}
-	function work() {
+	//get best task and switches it on.
+	async function work() {
 		let contracts = ns.bladeburner.getContractNames()
 		let operations = ns.bladeburner.getOperationNames()
+		let blackops = ns.bladeburner.getBlackOpNames()
 		let bestco
 		let bestop
-		for (let i = 0; i < contracts.length; i++) {
-			let hold = getsucceschance("contract", contracts[i])
-			contracts[i] = [contracts[i], ns.bladeburner.getActionRepGain("contract", contracts[i], ns.bladeburner.getActionCurrentLevel("contract", contracts[i])) * hold[0], hold[0]]
-		}
-		for (let i = 0; i < operations.length; i++) {
-			let hold = getsucceschance("operation", operations[i])
-			operations[i] = [operations[i], ns.bladeburner.getActionRepGain("operation", operations[i], ns.bladeburner.getActionCurrentLevel("operation", operations[i])) * hold[0], hold[0]]
-		}
-		//get best chance task
-		for (let i = 0; i < contracts.length; i++) {
-			if (bestco == undefined || (contracts[i][1] > bestco[1] && 0 < ns.bladeburner.getActionCountRemaining("contract", contracts[i][0]) && contracts[i][2] > minsucchance)) {
-				bestco = contracts[i]
+		let blackop
+		if (ns.bladeburner.getActionCountRemaining("operation", "Assassination") > 0) {
+			//highest contract check
+			for (let i = 0; i < contracts.length; i++) {
+				let hold = getsucceschance("contract", contracts[i])
+				contracts[i] = [contracts[i], ns.bladeburner.getActionRepGain("contract", contracts[i], ns.bladeburner.getActionCurrentLevel("contract", contracts[i])) * hold[0], hold[0]]
 			}
-		}
 
-		for (let i = 0; i < operations.length; i++) {
-			if ((bestop == undefined || (operations[i][1] > bestop[1] && 0 < ns.bladeburner.getActionCountRemaining("operation", operations[i][0]))) && operations[i][2] > minsucchance) {
-				bestop = operations[i]
+			for (let i = 0; i < contracts.length; i++) {
+				if (bestco == undefined || (contracts[i][1] > bestco[1] && 0 < ns.bladeburner.getActionCountRemaining("contract", contracts[i][0]) && contracts[i][2] > minsucchance)) {
+					bestco = contracts[i]
+				}
+			}
+			//highest operation check
+			for (let i = 0; i < operations.length; i++) {
+				let hold = getsucceschance("operation", operations[i])
+				operations[i] = [operations[i], ns.bladeburner.getActionRepGain("operation", operations[i], ns.bladeburner.getActionCurrentLevel("operation", operations[i])) * hold[0], hold[0]]
+			}
+
+			for (let i = 0; i < operations.length; i++) {
+				if ((bestop == undefined || (operations[i][1] > bestop[1] && 0 < ns.bladeburner.getActionCountRemaining("operation", operations[i][0]))) && operations[i][2] > minsucchance) {
+					bestop = operations[i]
+				}
+			}
+			//checks if there are any blackops to complete
+			for (let bops of blackops) {
+				if(ns.bladeburner.getActionCountRemaining("BlackOps", bops) == 1 && ns.bladeburner.getBlackOpRank(bops) > ns.bladeburner.getRank() && getsucceschance("BlackOps", bops)[0] > BOpsminchance) {
+					blackop = bops
+					break
+				}
+			}
+
+			if (blackop == undefined) {
+				bestco.unshift("contract")
+				if (bestop != undefined) {
+					bestop.unshift("operation")
+					if (bestop[2] < bestco[2]) { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
+					else { ns.bladeburner.startAction(bestop[0], bestop[1]); lastjob = bestop }
+				}
+				else { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
+			}
+			else {
+				ns.bladeburner.startAction("BlackOps", blackop)
+				await ns.sleep(ns.bladeburner.getActionTime("BlackOps", blackop))
+				work()
 			}
 		}
-		bestco.unshift("contract")
-		if (bestop != undefined) {
-			bestop.unshift("operation")
-			if (bestop[2] < bestco[2]) { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
-			else { ns.bladeburner.startAction(bestop[0], bestop[1]); lastjob = bestop }
+		else {
+			ns.bladeburner.startAction("General", "Incite Violence")
+			while (ns.bladeburner.getActionCountRemaining("operatiion", "Assassination") == 0) {
+				await ns.sleep(1000)
+			}
+			work()
 		}
-		else { ns.bladeburner.startAction(bestco[0], bestco[1]); lastjob = bestco }
 	}
 	//checks for the lowest value and buys it, excludes 3 skills.
 	function spendskill() {
