@@ -7,6 +7,7 @@ const switchtime = 5 //minutes to spend after location switch.
 export async function main(ns) {
 	const loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima"]
 	let lastjob = ["contract", "Tracking"]
+	let skillissue = 0
 	//main loop
 	while (true) {
 		rest()
@@ -111,13 +112,23 @@ export async function main(ns) {
 		}
 		for (let i = 0; i < skills.length; i++) {
 			if (uskill == undefined || skills[i][1] < uskill[1]) {
-				uskill = skills[i]
+				if(skills[i][0] == "Overclock"){
+					if(ns.bladeburner.getSkillLevel("Overclock") != 90) {
+						uskill = skills[i]
+					}
+				}
+				else{uskill = skills[i]}
+				
 			}
 		}
 		if (ns.bladeburner.getSkillPoints() >= uskill[1]) {
-			ns.bladeburner.upgradeSkill(uskill[0]); ns.tprint("bought " + uskill[0])
-			spendskill()
+			ns.bladeburner.upgradeSkill(uskill[0])
+			ns.tprint("bought " + uskill[0])
+			if (skillissue < 50) {
+				skillissue++;
+				spendskill()
 			}
+		}
 	}
 	// depending on succes devation threshhold, decides if it goes training or optimizing chances
 	function rest() {
