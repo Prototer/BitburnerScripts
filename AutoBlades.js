@@ -5,7 +5,7 @@ const minsucchance = 0.5 //minimal succes chance to let things go.
 const switchtime = 5 //minutes to spend after location switch.
 //main script
 export async function main(ns) {
-	let loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima", 0]
+	const loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima"]
 	let lastjob = ["contract", "Tracking"]
 	//main loop
 	while (true) {
@@ -22,7 +22,6 @@ export async function main(ns) {
 			if (chold[0] < (minsucchance - maxchandev) && lastjob[0][1] != "Tracking") { await work() }
 			if (chold[0] == 1 && lastjob[0][1] != "Assassination" && lastjob[0][1] != lastjob[1][1]) { lastjob[1] = lastjob[0]; await work() }
 			await blackops()
-			if (ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1000000000) { await changeloc() }
 			await ns.sleep(1000)
 			ns.print("tick seperator: while work " + Math.random())
 		}
@@ -37,16 +36,6 @@ export async function main(ns) {
 	function getsucceschance(type, task) {
 		const res = ns.bladeburner.getActionEstimatedSuccessChance(type, task)
 		return [res[0], res[1] - res[0]]
-	}
-	async function changeloc() {
-		for (let i = 0; i < loc.length - 1; i++) {
-			if (ns.bladeburner.getCity() == loc[i]) { loc[6] = i }
-		}
-		loc[6]++
-		ns.bladeburner.switchCity(loc[loc[6] % 6])
-		ns.bladeburner.startAction("General", "Field Analysis")
-		await ns.sleep(60000 * switchtime)
-		await work()
 	}
 	//get best task and switches it on.
 	async function work() {
@@ -125,7 +114,10 @@ export async function main(ns) {
 				uskill = skills[i]
 			}
 		}
-		if (ns.bladeburner.getSkillPoints() >= uskill[1]) { ns.bladeburner.upgradeSkill(uskill[0]); ns.tprint("bought " + uskill[0]) }
+		if (ns.bladeburner.getSkillPoints() >= uskill[1]) {
+			ns.bladeburner.upgradeSkill(uskill[0]); ns.tprint("bought " + uskill[0])
+			spendskill()
+			}
 	}
 	// depending on succes devation threshhold, decides if it goes training or optimizing chances
 	function rest() {
