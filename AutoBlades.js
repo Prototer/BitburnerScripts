@@ -2,20 +2,19 @@
 const BOpsminchance = 0.75 //minimal succes chance to attempt
 const maxchandev = 0.05 //maximal devation between highest and lowest succes range for contracts and operations.
 const minsucchance = 0.5 //minimal succes chance to let things go.
+const switchtime = 5 //minutes to spend after location switch.
 //main script
 export async function main(ns) {
-	//main loop
 	let loc = ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima", 0]
 	let lastjob = ["contract", "Tracking"]
-	let restoverride = false
+	//main loop
 	while (true) {
 		rest()
 		while (getstamina() < 1) { //rest
 			spendskill()
 			await ns.sleep(1000)
-			ns.print("tick seperator: while rest" + Math.random())
+			ns.print("tick seperator: while rest " + Math.random())
 		}
-		if (ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1000000000) { ns.print("check"); changeloc() }
 		await work()
 		while (getstamina() > 0.5) { //work
 			spendskill()
@@ -23,12 +22,13 @@ export async function main(ns) {
 			if (chold[0] < (minsucchance - maxchandev) && lastjob[0][1] != "Tracking") { await work() }
 			if (chold[0] == 1 && lastjob[0][1] != "Assassination" && lastjob[0][1] != lastjob[1][1]) { lastjob[1] = lastjob[0]; await work() }
 			await blackops()
+			if (ns.bladeburner.getCityEstimatedPopulation(ns.bladeburner.getCity()) < 1000000000) { await changeloc() }
 			await ns.sleep(1000)
-			ns.print("tick seperator: while work" + Math.random())
+			ns.print("tick seperator: while work " + Math.random())
 		}
 		lastjob.splice(1, 1)
 	}
-	//all the other functions (only works that way)
+	//all the other functions
 	function getstamina() {
 		const res = ns.bladeburner.getStamina()
 		return res[0] / res[1]
@@ -38,13 +38,15 @@ export async function main(ns) {
 		const res = ns.bladeburner.getActionEstimatedSuccessChance(type, task)
 		return [res[0], res[1] - res[0]]
 	}
-	function changeloc() {
+	async function changeloc() {
 		for (let i = 0; i < loc.length - 1; i++) {
 			if (ns.bladeburner.getCity() == loc[i]) { loc[6] = i }
 		}
 		loc[6]++
 		ns.bladeburner.switchCity(loc[loc[6] % 6])
-		restoverride = true
+		ns.bladeburner.startAction("General", "Field Analysis")
+		await ns.sleep(60000 * switchtime)
+		await work()
 	}
 	//get best task and switches it on.
 	async function work() {
@@ -128,7 +130,7 @@ export async function main(ns) {
 	// depending on succes devation threshhold, decides if it goes training or optimizing chances
 	function rest() {
 		let hold = getsucceschance(lastjob[0][0], lastjob[0][1])
-		if (hold[1] > maxchandev || restoverride) { ns.bladeburner.startAction("General", "Field Analysis"); restoverride = false }
+		if (hold[1] > maxchandev) { ns.bladeburner.startAction("General", "Field Analysis") }
 		else { ns.bladeburner.startAction("General", "Hyperbolic Regeneration Chamber") }
 	}
 }
